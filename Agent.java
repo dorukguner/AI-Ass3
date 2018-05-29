@@ -19,7 +19,11 @@ public class Agent {
     private static final char DOOR = '_';
     private static final char WATER = '~';
 
-    private char[][] map = new char[80][80];      // 160 is used so that no matter where we start in the map, we can always fit every single possible map combination
+    private int curDir = SOUTH;
+    private int iOffset = 0;
+    private int jOffset = 0;
+
+    private char[][] map = new char[80][80];      // CHANGE THIS TO 160 is used so that no matter where we start in the map, we can always fit every single possible map combination
 
     private int nrows;     // number of rows in environment
     private int startRow, startCol; // initial row and column
@@ -55,15 +59,102 @@ public class Agent {
 
                 switch (ch) { // if character is a valid action, return it
                     case 'F':
-                    case 'L':
-                    case 'R':
-                    case 'C':
-                    case 'U':
                     case 'f':
+                        switch (curDir) {
+                            case EAST:
+                                jOffset++;
+                                break;
+                            case WEST:
+                                jOffset--;
+                                break;
+                            case NORTH:
+                                iOffset--;
+                                break;
+                            case SOUTH:
+                                iOffset++;
+                                break;
+
+                        }
+                        buildMap(view);
+                        printMap();
+                        return ((char) ch);
+                    case 'L':
                     case 'l':
+                        switch (curDir) {
+                            case EAST:
+                                curDir = NORTH;
+                                break;
+                            case WEST:
+                                curDir = SOUTH;
+                                break;
+                            case NORTH:
+                                curDir = WEST;
+                                break;
+                            case SOUTH:
+                                curDir = EAST;
+                                break;
+
+                        }
+                        buildMap(view);
+                        printMap();
+                        return ((char) ch);
+                    case 'R':
                     case 'r':
+                        switch (curDir) {
+                            case EAST:
+                                curDir = SOUTH;
+                                break;
+                            case WEST:
+                                curDir = NORTH;
+                                break;
+                            case NORTH:
+                                curDir = EAST;
+                                break;
+                            case SOUTH:
+                                curDir = WEST;
+                                break;
+
+                        }
+                        buildMap(view);
+                        printMap();
+                        return ((char) ch);
+                    case 'C':                       //HANDLE CHOPPING AND OPENING OF DOORS
                     case 'c':
+                        switch (curDir) {
+                            case EAST:
+                                curDir = NORTH;
+                                break;
+                            case WEST:
+                                curDir = SOUTH;
+                                break;
+                            case NORTH:
+                                curDir = WEST;
+                                break;
+                            case SOUTH:
+                                curDir = EAST;
+                                break;
+
+                        }
+                        buildMap(view);
+                        printMap();
+                        return ((char) ch);
+                    case 'U':
                     case 'u':
+                        switch (curDir) {
+                            case EAST:
+                                curDir = NORTH;
+                                break;
+                            case WEST:
+                                curDir = SOUTH;
+                                break;
+                            case NORTH:
+                                curDir = WEST;
+                                break;
+                            case SOUTH:
+                                curDir = EAST;
+                                break;
+
+                        }
                         buildMap(view);
                         printMap();
                         return ((char) ch);
@@ -104,8 +195,8 @@ public class Agent {
     }
 
     private void buildMap(char view[][]) {
-        int mapI = map.length / 2 - 2;
-        int mapJ = map.length / 2 - 2;
+        int mapI = map.length / 2 + iOffset;
+        int mapJ = map.length / 2 + jOffset;
         int initialMapJ = mapJ;
         for (int i = 0; i < view.length; i++) {
             for (int j = 0; j < view[0].length; j++) {
@@ -122,6 +213,8 @@ public class Agent {
     }
 
     private void initialiseMap() {
+        startRow = map.length / 2;
+        startCol = map[0].length / 2;
         for (int i = 0; i < map.length; i++) {
             for (int j = 0; j < map[0].length; j++) {
                 map[i][j] = '#';
