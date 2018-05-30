@@ -4,6 +4,8 @@ import java.net.*;
 
 public class Agent {
 
+    private boolean first = true;
+
     private final static int EAST = 0;
     private final static int NORTH = 1;
     private final static int WEST = 2;
@@ -56,27 +58,27 @@ public class Agent {
             while (ch != -1) {
                 // read character from keyboard
                 ch = System.in.read();
-
                 switch (ch) { // if character is a valid action, return it
                     case 'F':
                     case 'f':
-                        switch (curDir) {
-                            case EAST:
-                                jOffset++;
-                                break;
-                            case WEST:
-                                jOffset--;
-                                break;
-                            case NORTH:
-                                iOffset--;
-                                break;
-                            case SOUTH:
-                                iOffset++;
-                                break;
+                        System.out.println(canMove(view));
+                        if (canMove(view)) {
+                            switch (curDir) {
+                                case EAST:
+                                    jOffset++;
+                                    break;
+                                case WEST:
+                                    jOffset--;
+                                    break;
+                                case NORTH:
+                                    iOffset--;
+                                    break;
+                                case SOUTH:
+                                    iOffset++;
+                                    break;
 
+                            }
                         }
-                        buildMap(view);
-                        printMap();
                         return ((char) ch);
                     case 'L':
                     case 'l':
@@ -95,8 +97,6 @@ public class Agent {
                                 break;
 
                         }
-                        buildMap(view);
-                        printMap();
                         return ((char) ch);
                     case 'R':
                     case 'r':
@@ -115,48 +115,16 @@ public class Agent {
                                 break;
 
                         }
-                        buildMap(view);
-                        printMap();
                         return ((char) ch);
                     case 'C':                       //HANDLE CHOPPING AND OPENING OF DOORS
                     case 'c':
-                        switch (curDir) {
-                            case EAST:
-                                curDir = NORTH;
-                                break;
-                            case WEST:
-                                curDir = SOUTH;
-                                break;
-                            case NORTH:
-                                curDir = WEST;
-                                break;
-                            case SOUTH:
-                                curDir = EAST;
-                                break;
-
+                        if (canChop(view, curDir)) {
+                            hasRaft = true;
                         }
-                        buildMap(view);
-                        printMap();
                         return ((char) ch);
                     case 'U':
                     case 'u':
-                        switch (curDir) {
-                            case EAST:
-                                curDir = NORTH;
-                                break;
-                            case WEST:
-                                curDir = SOUTH;
-                                break;
-                            case NORTH:
-                                curDir = WEST;
-                                break;
-                            case SOUTH:
-                                curDir = EAST;
-                                break;
 
-                        }
-                        buildMap(view);
-                        printMap();
                         return ((char) ch);
                 }
             }
@@ -165,6 +133,39 @@ public class Agent {
         }
 
         return 0;
+    }
+
+    private void setPlayer(char[][] view) {
+        if (canMove(view)) {
+            int i = map.length / 2 + iOffset + 2;
+            int j = map.length / 2 + jOffset + 2;
+            char prevChar;
+            if (curDir == NORTH) {
+                map[i][j] = '^';
+                prevChar = map[i + 1][j];
+                if (prevChar == '^') {
+                    map[i + 1][j] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
+                }
+            } else if (curDir == SOUTH) {
+                map[i][j] = 'v';
+                prevChar = map[i - 1][j];
+                if (prevChar == 'v') {
+                    map[i - 1][j] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
+                }
+            } else if (curDir == EAST) {
+                map[i][j] = '>';
+                prevChar = map[i][j - 1];
+                if (prevChar == '>') {
+                    map[i][j - 1] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
+                }
+            } else if (curDir == WEST) {
+                map[i][j] = '<';
+                prevChar = map[i][j + 1];
+                if (prevChar == '<') {
+                    map[i][j + 1] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
+                }
+            }
+        }
     }
 
     private void printMap() {
@@ -178,7 +179,7 @@ public class Agent {
 
     void print_view(char view[][]) {
         int i, j;
-
+        System.out.println(iOffset + ", " + jOffset);
         System.out.println("\n+-----+");
         for (i = 0; i < 5; i++) {
             System.out.print("|");
@@ -194,14 +195,99 @@ public class Agent {
         System.out.println("+-----+");
     }
 
+    private boolean canMove(char[][] view) {
+        int i = 0;
+        int j = 2;
+        char nextTile = view[i][j];
+        System.out.println("Next tile is " + nextTile);
+        return nextTile == ' ' || nextTile == STONE || nextTile == PLACEDSTONE || nextTile == AXE || nextTile == KEY || nextTile == GOLD
+                || ((hasRaft || numStones > 0) && nextTile == WATER);
+    }
+
+    private boolean canChop(char[][] view, int direction) {
+        int i = 2;
+        int j = 2;
+        char nextTile = view[i][j];
+        switch (direction) {
+            case NORTH:
+                nextTile = view[i-1][j];
+                break;
+            case SOUTH:
+                nextTile = view[i+1][j];
+                break;
+            case EAST:
+                nextTile = view[i][j+1];
+                break;
+            case WEST:
+                nextTile = view[i][j-1];
+                break;
+        }
+        return hasAxe && nextTile == TREE;
+    }
+
+    private boolean canUnlock(char[][] view, int direction) {
+        int i = 2;
+        int j = 2;
+        char nextTile = view[i][j];
+        switch (direction) {
+            case NORTH:
+                nextTile = view[i-1][j];
+                break;
+            case SOUTH:
+                nextTile = view[i+1][j];
+                break;
+            case EAST:
+                nextTile = view[i][j+1];
+                break;
+            case WEST:
+                nextTile = view[i][j-1];
+                break;
+        }
+        return hasKey && nextTile == DOOR;
+    }
+
     private void buildMap(char view[][]) {
         int mapI = map.length / 2 + iOffset;
         int mapJ = map.length / 2 + jOffset;
+        if (curDir == NORTH) {
+            int i = 0;
+            for (int j = 0; j < view.length; j++) {
+                map[mapI][mapJ + j] = view[i][j];
+            }
+        } else if (curDir == SOUTH) {
+            int i = 0;
+            for (int j = 0; j < view.length; j++) {
+                map[mapI + view.length - 1][mapJ + j] = view[i][j];
+            }
+        } else if (curDir == EAST) {
+            int i = 0;
+            for (int j = view.length - 1; j >= 0; j--) {
+                map[mapI + j][mapJ + view.length - 1] = view[i][j];
+            }
+        } else if (curDir == WEST) {
+            int i = 0;
+            for (int j = view.length - 1; j >= 0; j--) {
+                map[mapI + j][mapJ] = view[i][4 - j];
+
+            }
+        }
+    }
+
+    private void initialiseMap(char[][] view) {
+        startRow = map.length / 2;
+        startCol = map[0].length / 2;
+        int mapI = map.length / 2;
+        int mapJ = map.length / 2;
         int initialMapJ = mapJ;
-        for (int i = 0; i < view.length; i++) {
-            for (int j = 0; j < view[0].length; j++) {
+        for (int i = 0; i < map.length; i++) {
+            for (int j = 0; j < map[0].length; j++) {
+                map[i][j] = '#';
+            }
+        }
+        for (int i = view.length - 1; i >= 0; i--) {
+            for (int j = view[0].length - 1; j >= 0; j--) {
                 if ((i == 2) && (j == 2)) {
-                    map[mapI][mapJ] = '^';
+                    map[mapI][mapJ] = 'v';
                 } else {
                     map[mapI][mapJ] = view[i][j];
                 }
@@ -212,27 +298,17 @@ public class Agent {
         }
     }
 
-    private void initialiseMap() {
-        startRow = map.length / 2;
-        startCol = map[0].length / 2;
-        for (int i = 0; i < map.length; i++) {
-            for (int j = 0; j < map[0].length; j++) {
-                map[i][j] = '#';
-            }
-        }
-    }
-
     public static void main(String[] args) {
         InputStream in = null;
         OutputStream out = null;
         Socket socket = null;
         Agent agent = new Agent();
+        boolean first = true;
         char view[][] = new char[5][5];
         char action = 'F';
         int port;
         int ch;
         int i, j;
-        agent.initialiseMap();
 
         if (args.length < 2) {
             System.out.println("Usage: java Agent -p <port>\n");
@@ -250,7 +326,7 @@ public class Agent {
             System.exit(-1);
         }
 
-        try { // scan 5-by-5 wintow around current location
+        try { // scan 5-by-5 window around current location
             while (true) {
                 for (i = 0; i < 5; i++) {
                     for (j = 0; j < 5; j++) {
@@ -263,7 +339,16 @@ public class Agent {
                         }
                     }
                 }
+                if (!first) {
+                    agent.buildMap(view);
+                    agent.setPlayer(view);
+                    agent.printMap();
+                }
                 agent.print_view(view); // COMMENT THIS OUT BEFORE SUBMISSION
+                if (first) {
+                    agent.initialiseMap(view);
+                    first = false;
+                }
                 action = agent.get_action(view);
                 out.write(action);
             }
