@@ -93,8 +93,8 @@ public class Agent {
                             case SOUTH:
                                 curDir = EAST;
                                 break;
-
                         }
+                        buildMap(view);
                         return ((char) ch);
                     case 'R':
                     case 'r':
@@ -111,23 +111,23 @@ public class Agent {
                             case SOUTH:
                                 curDir = WEST;
                                 break;
-
                         }
+                        buildMap(view);
                         return ((char) ch);
                     case 'C':                       //HANDLE CHOPPING AND OPENING OF DOORS
                     case 'c':
                         if (canChop(view)) {
                             System.out.println("NOW HAVE RAFT");
-                            removeMapOject();
                             hasRaft = true;
                         }
+                        buildMap(view);
                         return ((char) ch);
                     case 'U':
                     case 'u':
                         if (canUnlock(view)) {
                             System.out.println("UNLOCKED DOOR");
-                            removeMapOject();
                         }
+                        buildMap(view);
                         return ((char) ch);
                 }
             }
@@ -136,31 +136,6 @@ public class Agent {
         }
 
         return 0;
-    }
-
-    private void removeMapOject() {
-        int mapI = map.length / 2 + iOffset;
-        int mapJ = map.length / 2 + jOffset;
-        switch (curDir) {
-            case NORTH:
-                mapI = mapI + 1;
-                mapJ = mapJ + 2;
-                break;
-            case EAST:
-                mapI = mapI + 2;
-                mapJ = mapJ + 3;
-                break;
-            case SOUTH:
-                mapI = mapI + 3;
-                mapJ = mapJ + 2;
-                break;
-            case WEST:
-                mapI = mapI + 2;
-                mapJ = mapJ + 1;
-                break;
-        }
-        System.out.println("removing object at " + mapI + ", " + mapJ + ": " + map[mapI][mapJ]);
-        map[mapI][mapJ] = ' ';
     }
 
     private void setPlayer() {
@@ -227,7 +202,14 @@ public class Agent {
                     numStones--;
                 } else if (hasRaft) {
                     System.out.println("USED A RAFT");
-                    // SET HASRAFT TO FALSE WHEN GOING BACK ON LAND
+                    onRaft = true;
+                }
+                break;
+            case ' ':
+                if (onRaft) {
+                    System.out.println("GETTING OFF RAFT");
+                    onRaft = false;
+                    hasRaft = false;
                 }
                 break;
         }
@@ -288,25 +270,28 @@ public class Agent {
         int mapI = map.length / 2 + iOffset;
         int mapJ = map.length / 2 + jOffset;
         if (curDir == NORTH) {
-            int i = 0;
-            for (int j = 0; j < view.length; j++) {
-                map[mapI][mapJ + j] = view[i][j];
+            for (int i = 0; i < view.length; i++) {
+                for (int j = 0; j < view.length; j++) {
+                    map[mapI + i][mapJ + j] = view[i][j];
+                }
             }
         } else if (curDir == SOUTH) {
-            int i = 0;
-            for (int j = view.length - 1; j >= 0; j--) {
-                map[mapI + view.length - 1][mapJ + j] = view[i][4 - j];
+            for (int i = 0; i < view.length; i++) {
+                for (int j = view.length - 1; j >= 0; j--) {
+                    map[mapI + view.length - 1 - i][mapJ + j] = view[i][4 - j];
+                }
             }
         } else if (curDir == EAST) {
-            int i = 0;
-            for (int j = view.length - 1; j >= 0; j--) {
-                map[mapI + j][mapJ + view.length - 1] = view[i][j];
+            for (int i = 0; i < view.length; i++) {
+                for (int j = view.length - 1; j >= 0; j--) {
+                    map[mapI + j][mapJ + view.length - 1 - i] = view[i][j];
+                }
             }
         } else if (curDir == WEST) {
-            int i = 0;
-            for (int j = view.length - 1; j >= 0; j--) {
-                map[mapI + j][mapJ] = view[i][4 - j];
-
+            for (int i = 0; i < view.length; i++) {
+                for (int j = view.length - 1; j >= 0; j--) {
+                    map[mapI + j][mapJ + i] = view[i][4 - j];
+                }
             }
         }
     }
