@@ -4,7 +4,6 @@ import java.net.*;
 
 public class Agent {
 
-    private boolean first = true;
 
     private final static int EAST = 0;
     private final static int NORTH = 1;
@@ -18,7 +17,7 @@ public class Agent {
     private static final char WALL = '*';
     private static final char GOLD = '$';
     private static final char KEY = 'k';
-    private static final char DOOR = '_';
+    private static final char DOOR = '-';
     private static final char WATER = '~';
 
     private int curDir = SOUTH;
@@ -38,7 +37,9 @@ public class Agent {
     private boolean hasTreasure = false;
     private boolean hasRaft = false;
     private boolean onRaft = false;
+    private boolean hasGold = false;
     private boolean offMap = false;
+
 
     private boolean gameWon = false;
     private boolean gameLost = false;
@@ -61,24 +62,21 @@ public class Agent {
                 switch (ch) { // if character is a valid action, return it
                     case 'F':
                     case 'f':
-                        System.out.println(canMove(view));
-                        if (canMove(view)) {
-                            switch (curDir) {
-                                case EAST:
-                                    jOffset++;
-                                    break;
-                                case WEST:
-                                    jOffset--;
-                                    break;
-                                case NORTH:
-                                    iOffset--;
-                                    break;
-                                case SOUTH:
-                                    iOffset++;
-                                    break;
-
-                            }
+                        switch (curDir) {
+                            case EAST:
+                                jOffset++;
+                                break;
+                            case WEST:
+                                jOffset--;
+                                break;
+                            case NORTH:
+                                iOffset--;
+                                break;
+                            case SOUTH:
+                                iOffset++;
+                                break;
                         }
+                        setTools(view);
                         return ((char) ch);
                     case 'L':
                     case 'l':
@@ -118,13 +116,18 @@ public class Agent {
                         return ((char) ch);
                     case 'C':                       //HANDLE CHOPPING AND OPENING OF DOORS
                     case 'c':
-                        if (canChop(view, curDir)) {
+                        if (canChop(view)) {
+                            System.out.println("NOW HAVE RAFT");
+                            removeMapOject();
                             hasRaft = true;
                         }
                         return ((char) ch);
                     case 'U':
                     case 'u':
-
+                        if (canUnlock(view)) {
+                            System.out.println("UNLOCKED DOOR");
+                            removeMapOject();
+                        }
                         return ((char) ch);
                 }
             }
@@ -135,36 +138,98 @@ public class Agent {
         return 0;
     }
 
-    private void setPlayer(char[][] view) {
-        if (canMove(view)) {
-            int i = map.length / 2 + iOffset + 2;
-            int j = map.length / 2 + jOffset + 2;
-            char prevChar;
-            if (curDir == NORTH) {
-                map[i][j] = '^';
-                prevChar = map[i + 1][j];
-                if (prevChar == '^') {
-                    map[i + 1][j] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
-                }
-            } else if (curDir == SOUTH) {
-                map[i][j] = 'v';
-                prevChar = map[i - 1][j];
-                if (prevChar == 'v') {
-                    map[i - 1][j] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
-                }
-            } else if (curDir == EAST) {
-                map[i][j] = '>';
-                prevChar = map[i][j - 1];
-                if (prevChar == '>') {
-                    map[i][j - 1] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
-                }
-            } else if (curDir == WEST) {
-                map[i][j] = '<';
-                prevChar = map[i][j + 1];
-                if (prevChar == '<') {
-                    map[i][j + 1] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
-                }
+    private void removeMapOject() {
+        int mapI = map.length / 2 + iOffset;
+        int mapJ = map.length / 2 + jOffset;
+        switch (curDir) {
+            case NORTH:
+                mapI = mapI + 1;
+                mapJ = mapJ + 2;
+                break;
+            case EAST:
+                mapI = mapI + 2;
+                mapJ = mapJ + 3;
+                break;
+            case SOUTH:
+                mapI = mapI + 3;
+                mapJ = mapJ + 2;
+                break;
+            case WEST:
+                mapI = mapI + 2;
+                mapJ = mapJ + 1;
+                break;
+        }
+        System.out.println("removing object at " + mapI + ", " + mapJ + ": " + map[mapI][mapJ]);
+        map[mapI][mapJ] = ' ';
+    }
+
+    private void setPlayer() {
+        int i = map.length / 2 + iOffset + 2;
+        int j = map.length / 2 + jOffset + 2;
+        char prevChar;
+        if (curDir == NORTH) {
+            map[i][j] = '^';
+            prevChar = map[i + 1][j];
+            if (prevChar == '^') {
+                map[i + 1][j] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
             }
+        } else if (curDir == SOUTH) {
+            map[i][j] = 'v';
+            prevChar = map[i - 1][j];
+            if (prevChar == 'v') {
+                map[i - 1][j] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
+            }
+        } else if (curDir == EAST) {
+            map[i][j] = '>';
+            prevChar = map[i][j - 1];
+            if (prevChar == '>') {
+                map[i][j - 1] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
+            }
+        } else if (curDir == WEST) {
+            map[i][j] = '<';
+            prevChar = map[i][j + 1];
+            if (prevChar == '<') {
+                map[i][j + 1] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
+            }
+        }
+    }
+
+    private void setTools(char[][] view) {
+        int i = 1;
+        int j = 2;
+        char nextTile = view[i][j];
+        switch (nextTile) {
+            case AXE:
+                System.out.println("HAS AXE");
+                hasAxe = true;
+                break;
+            case TREE:
+                if (hasAxe) {
+                    System.out.println("HAS RAFT");
+                    hasRaft = true;
+                }
+                break;
+            case KEY:
+                System.out.println("HAS KEY");
+                hasKey = true;
+                break;
+            case STONE:
+                System.out.println("HAS STONE");
+                numStones++;
+                break;
+            case GOLD:
+                System.out.println("HAS GOLD");
+                hasGold = true;
+                break;
+            case WATER:
+                if (numStones > 0) {
+                    System.out.println("USED A STONE");
+                    numStones--;
+                } else if (hasRaft) {
+                    System.out.println("USED A RAFT");
+                    // SET HASRAFT TO FALSE WHEN GOING BACK ON LAND
+                }
+                break;
         }
     }
 
@@ -196,53 +261,26 @@ public class Agent {
     }
 
     private boolean canMove(char[][] view) {
-        int i = 0;
+        int i = 1;
         int j = 2;
+        print_view(view);
         char nextTile = view[i][j];
         System.out.println("Next tile is " + nextTile);
         return nextTile == ' ' || nextTile == STONE || nextTile == PLACEDSTONE || nextTile == AXE || nextTile == KEY || nextTile == GOLD
                 || ((hasRaft || numStones > 0) && nextTile == WATER);
     }
 
-    private boolean canChop(char[][] view, int direction) {
-        int i = 2;
+    private boolean canChop(char[][] view) {
+        int i = 1;
         int j = 2;
         char nextTile = view[i][j];
-        switch (direction) {
-            case NORTH:
-                nextTile = view[i-1][j];
-                break;
-            case SOUTH:
-                nextTile = view[i+1][j];
-                break;
-            case EAST:
-                nextTile = view[i][j+1];
-                break;
-            case WEST:
-                nextTile = view[i][j-1];
-                break;
-        }
         return hasAxe && nextTile == TREE;
     }
 
-    private boolean canUnlock(char[][] view, int direction) {
-        int i = 2;
+    private boolean canUnlock(char[][] view) {
+        int i = 1;
         int j = 2;
         char nextTile = view[i][j];
-        switch (direction) {
-            case NORTH:
-                nextTile = view[i-1][j];
-                break;
-            case SOUTH:
-                nextTile = view[i+1][j];
-                break;
-            case EAST:
-                nextTile = view[i][j+1];
-                break;
-            case WEST:
-                nextTile = view[i][j-1];
-                break;
-        }
         return hasKey && nextTile == DOOR;
     }
 
@@ -256,8 +294,8 @@ public class Agent {
             }
         } else if (curDir == SOUTH) {
             int i = 0;
-            for (int j = 0; j < view.length; j++) {
-                map[mapI + view.length - 1][mapJ + j] = view[i][j];
+            for (int j = view.length - 1; j >= 0; j--) {
+                map[mapI + view.length - 1][mapJ + j] = view[i][4 - j];
             }
         } else if (curDir == EAST) {
             int i = 0;
@@ -340,8 +378,11 @@ public class Agent {
                     }
                 }
                 if (!first) {
-                    agent.buildMap(view);
-                    agent.setPlayer(view);
+                    //if (agent.canMove(agent.prevView) || (action != 'f' && action != 'F')) {
+                        agent.buildMap(view);
+                        agent.setPlayer();
+
+                    //}
                     agent.printMap();
                 }
                 agent.print_view(view); // COMMENT THIS OUT BEFORE SUBMISSION
