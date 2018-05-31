@@ -4,48 +4,16 @@ import java.net.*;
 
 public class Agent {
 
+    private Map map = new Map();
 
-    private final static int EAST = 0;
-    private final static int NORTH = 1;
-    private final static int WEST = 2;
-    private final static int SOUTH = 3;
-
-    private static final char TREE = 'T';
-    private static final char AXE = 'a';
-    private static final char STONE = 'o';
-    private static final char PLACEDSTONE = 'O';
-    private static final char WALL = '*';
-    private static final char GOLD = '$';
-    private static final char KEY = 'k';
-    private static final char DOOR = '-';
-    private static final char WATER = '~';
-
-    private int curDir = SOUTH;
-    private int iOffset = 0;
-    private int jOffset = 0;
-
-    private char[][] map = new char[80][80];      // CHANGE THIS TO 160 is used so that no matter where we start in the map, we can always fit every single possible map combination
-
-    private int nrows;     // number of rows in environment
-    private int startRow, startCol; // initial row and column
+    private final static int NORTH = 0;
+    private final static int EAST = 1;
+    private final static int SOUTH = 2;
+    private final static int WEST = 3;
 
     // current row, column and direction of agent
     private int row, col, dirn;
 
-    private boolean hasAxe = false;
-    private boolean hasKey = false;
-    private boolean hasTreasure = false;
-    private boolean hasRaft = false;
-    private boolean onRaft = false;
-    private boolean hasGold = false;
-    private boolean offMap = false;
-
-
-    private boolean gameWon = false;
-    private boolean gameLost = false;
-
-    private int numDynamites = 0;
-    private int numStones = 0;
 
     public char get_action(char view[][]) {
 
@@ -53,81 +21,86 @@ public class Agent {
         int ch = 0;
 
         System.out.print("Enter Action(s): ");
-
         try {
 
             while (ch != -1) {
                 // read character from keyboard
                 ch = System.in.read();
+                if (ch == 'a') {
+                    ch = map.getBestMove();
+                }
+                System.out.printf("%c\n", ch);
                 switch (ch) { // if character is a valid action, return it
                     case 'F':
                     case 'f':
-                        switch (curDir) {
-                            case EAST:
-                                jOffset++;
-                                break;
-                            case WEST:
-                                jOffset--;
-                                break;
-                            case NORTH:
-                                iOffset--;
-                                break;
-                            case SOUTH:
-                                iOffset++;
-                                break;
+                        if (map.canMove()) {
+                            switch (map.getCurDir()) {
+                                case EAST:
+                                    map.setjOffset(map.getjOffset() + 1);
+                                    break;
+                                case WEST:
+                                    map.setjOffset(map.getjOffset() - 1);
+                                    break;
+                                case NORTH:
+                                    map.setiOffset(map.getiOffset() - 1);
+                                    break;
+                                case SOUTH:
+                                    map.setiOffset(map.getiOffset() + 1);
+                                    break;
+                            }
+                            map.setTools(view);
                         }
-                        setTools(view);
                         return ((char) ch);
                     case 'L':
                     case 'l':
-                        switch (curDir) {
+                        switch (map.getCurDir()) {
                             case EAST:
-                                curDir = NORTH;
+                                map.setCurDir(NORTH);
                                 break;
                             case WEST:
-                                curDir = SOUTH;
+                                map.setCurDir(SOUTH);
                                 break;
                             case NORTH:
-                                curDir = WEST;
+                                map.setCurDir(WEST);
                                 break;
                             case SOUTH:
-                                curDir = EAST;
+                                map.setCurDir(EAST);
                                 break;
                         }
-                        buildMap(view);
+                        map.buildMap(view);
                         return ((char) ch);
                     case 'R':
                     case 'r':
-                        switch (curDir) {
+                        switch (map.getCurDir()) {
                             case EAST:
-                                curDir = SOUTH;
+                                map.setCurDir(SOUTH);
                                 break;
                             case WEST:
-                                curDir = NORTH;
+                                map.setCurDir(NORTH);
                                 break;
                             case NORTH:
-                                curDir = EAST;
+                                map.setCurDir(EAST);
                                 break;
                             case SOUTH:
-                                curDir = WEST;
+                                map.setCurDir(WEST);
                                 break;
                         }
-                        buildMap(view);
+                        map.buildMap(view);
                         return ((char) ch);
                     case 'C':                       //HANDLE CHOPPING AND OPENING OF DOORS
                     case 'c':
-                        if (canChop(view)) {
+                        if (map.canChop(view)) {
                             System.out.println("NOW HAVE RAFT");
-                            hasRaft = true;
+                            map.setHasRaft(true);
                         }
-                        buildMap(view);
+                        map.buildMap(view);
                         return ((char) ch);
                     case 'U':
                     case 'u':
-                        if (canUnlock(view)) {
+                        if (map.canUnlock(view)) {
                             System.out.println("UNLOCKED DOOR");
                         }
-                        buildMap(view);
+                        map.buildMap(view);
                         return ((char) ch);
                 }
             }
@@ -138,95 +111,8 @@ public class Agent {
         return 0;
     }
 
-    private void setPlayer() {
-        int i = map.length / 2 + iOffset + 2;
-        int j = map.length / 2 + jOffset + 2;
-        char prevChar;
-        if (curDir == NORTH) {
-            map[i][j] = '^';
-            prevChar = map[i + 1][j];
-            if (prevChar == '^') {
-                map[i + 1][j] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
-            }
-        } else if (curDir == SOUTH) {
-            map[i][j] = 'v';
-            prevChar = map[i - 1][j];
-            if (prevChar == 'v') {
-                map[i - 1][j] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
-            }
-        } else if (curDir == EAST) {
-            map[i][j] = '>';
-            prevChar = map[i][j - 1];
-            if (prevChar == '>') {
-                map[i][j - 1] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
-            }
-        } else if (curDir == WEST) {
-            map[i][j] = '<';
-            prevChar = map[i][j + 1];
-            if (prevChar == '<') {
-                map[i][j + 1] = ' ';      //CHANGE THIS TO SET THINGS IF NECESSARY
-            }
-        }
-    }
-
-    private void setTools(char[][] view) {
-        int i = 1;
-        int j = 2;
-        char nextTile = view[i][j];
-        switch (nextTile) {
-            case AXE:
-                System.out.println("HAS AXE");
-                hasAxe = true;
-                break;
-            case TREE:
-                if (hasAxe) {
-                    System.out.println("HAS RAFT");
-                    hasRaft = true;
-                }
-                break;
-            case KEY:
-                System.out.println("HAS KEY");
-                hasKey = true;
-                break;
-            case STONE:
-                System.out.println("HAS STONE");
-                numStones++;
-                break;
-            case GOLD:
-                System.out.println("HAS GOLD");
-                hasGold = true;
-                break;
-            case WATER:
-                if (numStones > 0) {
-                    System.out.println("USED A STONE");
-                    numStones--;
-                } else if (hasRaft) {
-                    System.out.println("USED A RAFT");
-                    onRaft = true;
-                }
-                break;
-            case ' ':
-                if (onRaft) {
-                    System.out.println("GETTING OFF RAFT");
-                    onRaft = false;
-                    hasRaft = false;
-                }
-                break;
-        }
-    }
-
-    private void printMap() {
-        for (int i = 0; i < map.length; i++) {
-            for(int j = 0; j < map.length; j++) {
-                System.out.print(map[i][j]);
-            }
-            System.out.println();
-        }
-    }
-
     void print_view(char view[][]) {
         int i, j;
-        System.out.println(iOffset + ", " + jOffset);
         System.out.println("\n+-----+");
         for (i = 0; i < 5; i++) {
             System.out.print("|");
@@ -240,85 +126,6 @@ public class Agent {
             System.out.println("|");
         }
         System.out.println("+-----+");
-    }
-
-    private boolean canMove(char[][] view) {
-        int i = 1;
-        int j = 2;
-        print_view(view);
-        char nextTile = view[i][j];
-        System.out.println("Next tile is " + nextTile);
-        return nextTile == ' ' || nextTile == STONE || nextTile == PLACEDSTONE || nextTile == AXE || nextTile == KEY || nextTile == GOLD
-                || ((hasRaft || numStones > 0) && nextTile == WATER);
-    }
-
-    private boolean canChop(char[][] view) {
-        int i = 1;
-        int j = 2;
-        char nextTile = view[i][j];
-        return hasAxe && nextTile == TREE;
-    }
-
-    private boolean canUnlock(char[][] view) {
-        int i = 1;
-        int j = 2;
-        char nextTile = view[i][j];
-        return hasKey && nextTile == DOOR;
-    }
-
-    private void buildMap(char view[][]) {
-        int mapI = map.length / 2 + iOffset;
-        int mapJ = map.length / 2 + jOffset;
-        if (curDir == NORTH) {
-            for (int i = 0; i < view.length; i++) {
-                for (int j = 0; j < view.length; j++) {
-                    map[mapI + i][mapJ + j] = view[i][j];
-                }
-            }
-        } else if (curDir == SOUTH) {
-            for (int i = 0; i < view.length; i++) {
-                for (int j = view.length - 1; j >= 0; j--) {
-                    map[mapI + view.length - 1 - i][mapJ + j] = view[i][4 - j];
-                }
-            }
-        } else if (curDir == EAST) {
-            for (int i = 0; i < view.length; i++) {
-                for (int j = view.length - 1; j >= 0; j--) {
-                    map[mapI + j][mapJ + view.length - 1 - i] = view[i][j];
-                }
-            }
-        } else if (curDir == WEST) {
-            for (int i = 0; i < view.length; i++) {
-                for (int j = view.length - 1; j >= 0; j--) {
-                    map[mapI + j][mapJ + i] = view[i][4 - j];
-                }
-            }
-        }
-    }
-
-    private void initialiseMap(char[][] view) {
-        startRow = map.length / 2;
-        startCol = map[0].length / 2;
-        int mapI = map.length / 2;
-        int mapJ = map.length / 2;
-        int initialMapJ = mapJ;
-        for (int i = 0; i < map.length; i++) {
-            for (int j = 0; j < map[0].length; j++) {
-                map[i][j] = '#';
-            }
-        }
-        for (int i = view.length - 1; i >= 0; i--) {
-            for (int j = view[0].length - 1; j >= 0; j--) {
-                if ((i == 2) && (j == 2)) {
-                    map[mapI][mapJ] = 'v';
-                } else {
-                    map[mapI][mapJ] = view[i][j];
-                }
-                mapJ++;
-            }
-            mapI++;
-            mapJ = initialMapJ;
-        }
     }
 
     public static void main(String[] args) {
@@ -363,16 +170,14 @@ public class Agent {
                     }
                 }
                 if (!first) {
-                    //if (agent.canMove(agent.prevView) || (action != 'f' && action != 'F')) {
-                        agent.buildMap(view);
-                        agent.setPlayer();
-
-                    //}
-                    agent.printMap();
+                    agent.map.buildMap(view);
+                    agent.map.setPlayer();
+                    agent.map.setToolCoords();
+                    agent.map.printMap();
                 }
                 agent.print_view(view); // COMMENT THIS OUT BEFORE SUBMISSION
                 if (first) {
-                    agent.initialiseMap(view);
+                    agent.map.initialiseMap(view);
                     first = false;
                 }
                 action = agent.get_action(view);
