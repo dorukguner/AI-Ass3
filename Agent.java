@@ -20,32 +20,38 @@ public class Agent {
 
         int ch = 0;
 
-        System.out.print("Enter Action(s): ");
-        try {
+        //System.out.print("Enter Action(s): ");
+        //try {
 
             while (ch != -1) {
                 // read character from keyboard
-                ch = System.in.read();
-                if (ch == 'a') {
+                //ch = System.in.read();
+                //if (ch == 'a') {
                     ch = map.getBestMove();
-                }
+                //}
                 System.out.printf("%c\n", ch);
+                map.setMovesMade(map.getMovesMade() + 1);
                 switch (ch) { // if character is a valid action, return it
                     case 'F':
                     case 'f':
                         if (map.canMove()) {
+                            int[] playerCoords = map.getPlayerCoords();
                             switch (map.getCurDir()) {
                                 case EAST:
                                     map.setjOffset(map.getjOffset() + 1);
+                                    map.setPlayerCoords(playerCoords[0], playerCoords[1] + 1);
                                     break;
                                 case WEST:
                                     map.setjOffset(map.getjOffset() - 1);
+                                    map.setPlayerCoords(playerCoords[0], playerCoords[1] - 1);
                                     break;
                                 case NORTH:
                                     map.setiOffset(map.getiOffset() - 1);
+                                    map.setPlayerCoords(playerCoords[0] - 1, playerCoords[1]);
                                     break;
                                 case SOUTH:
                                     map.setiOffset(map.getiOffset() + 1);
+                                    map.setPlayerCoords(playerCoords[0] + 1, playerCoords[1]);
                                     break;
                             }
                             map.setTools(view);
@@ -104,9 +110,9 @@ public class Agent {
                         return ((char) ch);
                 }
             }
-        } catch (IOException e) {
+        /*} catch (IOException e) {
             System.out.println("IO error:" + e);
-        }
+        }*/
 
         return 0;
     }
@@ -173,7 +179,7 @@ public class Agent {
                     agent.map.buildMap(view);
                     agent.map.setPlayer();
                     agent.map.setToolCoords();
-                    agent.map.printMap();
+                    //agent.map.printMap();
                 }
                 agent.print_view(view); // COMMENT THIS OUT BEFORE SUBMISSION
                 if (first) {

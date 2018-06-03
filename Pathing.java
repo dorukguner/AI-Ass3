@@ -1,79 +1,81 @@
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.*;
 
 public class Pathing {
 
-    private char[][] map;
+    private Map map;
 
-    public Pathing() {
-
-    }
-
-    public void setMap(char[][] map) {
+    public Pathing(Map map) {
         this.map = map;
     }
 
-    public int getManhattanDistance(int i0, int j0, int i1, int j1) {
-        return Math.abs(i0 - i1) + Math.abs(j0 - j1);
+    public void setMap(Map map) {
+        this.map = map;
     }
 
-    /*public boolean astar() {
-        char[][] currentMap = map;
+    public Map search(final int[] goalCoords, boolean complete) {
+        Map currentMap = map;
+        Map bestMap = map;
+        int i = 0;
+
         PriorityQueue<Map> openQueue = new PriorityQueue<>(new Comparator<Map>() {
             @Override
             public int compare(Map o1, Map o2) {
-                return o1.get
+                if (complete) {
+                    return o1.getManhattanDistance(o1.getPlayerCoords(), goalCoords) - o2.getManhattanDistance(o1.getPlayerCoords(), goalCoords);
+                }
+                return o1.getF(o1.getPlayerCoords(), goalCoords) - o2.getF(o1.getPlayerCoords(), goalCoords);
             }
         });
         openQueue.add(currentMap);
-        Set<int[][]> closedSet = new HashSet<>();
+        Set<char[][]> closedSet = new HashSet<>();
+        List<Character> path = new ArrayList<>();
 
-        while (!openQueue.isEmpty() && openQueue.size() < 3000) {
+        while (openQueue.peek() != null) {
             currentMap = openQueue.poll();
-            if (currentMap.getAmountOfCarsToMove() <= 0) {
-                map.setCompletedMap(currentMap.getMap());
 
+            if (complete) {
+                //System.out.println(currentMap.getManhattanDistance(currentMap.getPlayerCoords(), goalCoords));
+                //System.out.println(map.getMap()[currentMap.getPlayerCoords()[0]][currentMap.getPlayerCoords()[1]]);
+                if (currentMap.getManhattanDistance(currentMap.getPlayerCoords(), goalCoords) <= 1) {
+                    return currentMap;
+                }
+            } else {
+                if (map.tileIsWalkable(map.getMap()[currentMap.getPlayerCoords()[0]][currentMap.getPlayerCoords()[1]]) && currentMap.getManhattanDistance(currentMap.getPlayerCoords(), goalCoords) < map.getManhattanDistance(map.getPlayerCoords(), goalCoords)) {
+                    //System.out.println("AYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY " + currentMap.getPlayerCoords()[0] + ", " + currentMap.getPlayerCoords()[1]);
+                    return currentMap;
+                }
             }
 
             closedSet.add(currentMap.getMap());
+            for (Map neighbour : currentMap.getNeighbourMoves()) {
+                i++;
+                //neighbour.printMap();
+                //neighbour.setMap(neighbour.getMap());
 
-            for (int[][] nextMap : currentMap.getAllPossibleMoves()) {
-                BitMap nextBitMap = new BitMap(nextMap);
-                nextBitMap.setMovesMade(currentMap.getMovesMade() + 1);
-
-                if (setContains(closedSet, nextBitMap.getMap())) {
+                if (setContains(closedSet, neighbour.getMap())) {
+                    //System.out.println("Closed set contains neighbour");
                     continue;
                 }
 
-                //if (greedy) {
-                if (nextBitMap.getAmountOfCarsToMove() > currentMap.getAmountOfCarsToMove())
-                    continue;
-                // } else {
-                //   if (nextBitMap.getF() > currentMap.getF())
-                //        continue;
-                // }
-
-                if (!openQueue.contains(nextBitMap)) {
-                    openQueue.add(nextBitMap);
+                neighbour.setMovesMade(currentMap.getMovesMade() + 1);
+                if (!openQueue.contains(neighbour)) {
+                    openQueue.add(neighbour);
                 }
+
+                int weight = currentMap.getMovesMade() + neighbour.getManhattanDistance(currentMap.getPlayerCoords(), neighbour.getPlayerCoords());
+
+                if (weight > neighbour.getMovesMade()) continue;
+
+                bestMap = neighbour;
+
 
             }
         }
-        return false;
-    }*/
+        return null;
+    }
 
-    /**
-     * Checks if a given set of bitmaps contains a given bitmap
-     * @param closedSet
-     * @param map
-     * @return true if set contains bitmap
-     *          false if otherwise
-     */
-    private boolean setContains(Set<int[][]> closedSet, int[][] map) {
-        for (int[][] closedMap : closedSet) {
+    private boolean setContains(Set<char[][]> closedSet, char[][] map) {
+        for (char[][] closedMap : closedSet) {
             if (arraysAreEqual(closedMap, map)) {
                 return true;
             }
@@ -81,14 +83,7 @@ public class Pathing {
         return false;
     }
 
-    /**
-     * Checks if 2 bitmaps are equal
-     * @param a1
-     * @param a2
-     * @return true if bitmaps are equal
-     *          false if otherwise
-     */
-    private boolean arraysAreEqual(int[][] a1, int[][] a2) {
+    private boolean arraysAreEqual(char[][] a1, char[][] a2) {
         if (a1.length == a2.length && a1[0].length == a2[0].length) {
             for (int i = 0; i < a1.length; i++) {
                 for (int j = 0; j < a1[0].length; j++) {
@@ -100,4 +95,5 @@ public class Pathing {
         }
         return true;
     }
+
 }
