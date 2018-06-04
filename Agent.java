@@ -1,9 +1,46 @@
 import java.io.*;
 import java.net.*;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class Agent {
 
+    /**
+     * Our Agent will only perform one move at a time, always searching for the best possible move each time. This is
+     * done instead of performing multiple moves at once due to the fact that while uncovering new parts of the map, a
+     * better move can be discovered before fulling completing the Agent's walk to whatever it was previously walking to.
+     *
+     * The Agent checks whether or not we can walk to a certain goal coordinate by using a flood fill algorithm
+     * The flood fill algorithm is used because for this step we don't need to provide the most optimal route,
+     * we just need relatively quick computation time.
+     *
+     * Once we have determined which goal coordinate to walk to, we perform an AStar search to get the most optimal
+     * path to follow.
+     * 
+     * We prioritise tools in the following order: 
+     *      Axe
+     *      Key
+     *      Door
+     *      Tree
+     *      Stone
+     *      Treasure
+     * This order is used as we found through testing that there were times when extra tools were needed to reach
+     * the starting coordinates once the treasure was picked up. 
+     *
+     * Our Agent calculates which move to make next by following these rules:
+     *
+     *      1. If the agent has treasure and there is a valid path that the agent can take back to the starting point,
+     *          we follow this path till the game is won.
+     *
+     *      2. Otherwise, if there is a tool that has been seen that also has a valid path that we can take to interact
+     *          with it, we follow this path till the tool is picked up or a better move is found.
+     *
+     *      3. Otherwise, the agent will find the closest unexplored area by checking each square by using a modified
+     *          flood fill algorithm.
+     *
+     *      4. Otherwise, there are no logical moves that the Agent can make, so now we check if it is safe/possible for
+     *          the Agent to move forward, otherwise if it is not safe for the Agent to move forward we randomly turn left
+     *          or right.
+     *
+     */
     private Map map = new Map();
 
     private final static int NORTH = 0;
@@ -15,105 +52,88 @@ public class Agent {
     private int row, col, dirn;
 
 
-    public char get_action(char view[][]) throws InterruptedException {
+    public char get_action(char view[][]) {
 
 
         int ch = 0;
 
-        //System.out.print("Enter Action(s): ");
-        //try {
-
-            while (ch != -1) {
-                // read character from keyboard
-                //ch = System.in.read();
-                //if (ch == 'a') {
-                Thread.sleep(100);
-                    ch = map.getBestMove();
-                //}
-                //system.out.printf("%c\n", ch);
-                map.setMovesMade(map.getMovesMade() + 1);
-                switch (ch) { // if character is a valid action, return it
-                    case 'F':
-                    case 'f':
-                        if (map.canMove()) {
-                            int[] playerCoords = map.getPlayerCoords();
-                            switch (map.getCurDir()) {
-                                case EAST:
-                                    map.setjOffset(map.getjOffset() + 1);
-                                    map.setPlayerCoords(playerCoords[0], playerCoords[1] + 1);
-                                    break;
-                                case WEST:
-                                    map.setjOffset(map.getjOffset() - 1);
-                                    map.setPlayerCoords(playerCoords[0], playerCoords[1] - 1);
-                                    break;
-                                case NORTH:
-                                    map.setiOffset(map.getiOffset() - 1);
-                                    map.setPlayerCoords(playerCoords[0] - 1, playerCoords[1]);
-                                    break;
-                                case SOUTH:
-                                    map.setiOffset(map.getiOffset() + 1);
-                                    map.setPlayerCoords(playerCoords[0] + 1, playerCoords[1]);
-                                    break;
-                            }
-                            map.setTools(view);
-                        }
-                        return ((char) ch);
-                    case 'L':
-                    case 'l':
+        while (ch != -1) {
+            ch = map.getBestMove();
+            switch (ch) { // if character is a valid action, return it
+                case 'F':
+                case 'f':
+                    if (map.canMove()) {
+                        int[] playerCoords = map.getPlayerCoords();
                         switch (map.getCurDir()) {
                             case EAST:
-                                map.setCurDir(NORTH);
+                                map.setjOffset(map.getjOffset() + 1);
+                                map.setPlayerCoords(playerCoords[0], playerCoords[1] + 1);
                                 break;
                             case WEST:
-                                map.setCurDir(SOUTH);
+                                map.setjOffset(map.getjOffset() - 1);
+                                map.setPlayerCoords(playerCoords[0], playerCoords[1] - 1);
                                 break;
                             case NORTH:
-                                map.setCurDir(WEST);
+                                map.setiOffset(map.getiOffset() - 1);
+                                map.setPlayerCoords(playerCoords[0] - 1, playerCoords[1]);
                                 break;
                             case SOUTH:
-                                map.setCurDir(EAST);
+                                map.setiOffset(map.getiOffset() + 1);
+                                map.setPlayerCoords(playerCoords[0] + 1, playerCoords[1]);
                                 break;
                         }
-                        map.buildMap(view);
-                        return ((char) ch);
-                    case 'R':
-                    case 'r':
-                        switch (map.getCurDir()) {
-                            case EAST:
-                                map.setCurDir(SOUTH);
-                                break;
-                            case WEST:
-                                map.setCurDir(NORTH);
-                                break;
-                            case NORTH:
-                                map.setCurDir(EAST);
-                                break;
-                            case SOUTH:
-                                map.setCurDir(WEST);
-                                break;
-                        }
-                        map.buildMap(view);
-                        return ((char) ch);
-                    case 'C':                       //HANDLE CHOPPING AND OPENING OF DOORS
-                    case 'c':
-                        if (map.canChop(view)) {
-                            System.out.println("NOW HAVE RAFT");
-                            map.setHasRaft(true);
-                        }
-                        map.buildMap(view);
-                        return ((char) ch);
-                    case 'U':
-                    case 'u':
-                        if (map.canUnlock(view)) {
-                            System.out.println("UNLOCKED DOOR");
-                        }
-                        map.buildMap(view);
-                        return ((char) ch);
-                }
+                        map.setTools(view);
+                    }
+                    return ((char) ch);
+                case 'L':
+                case 'l':
+                    switch (map.getCurDir()) {
+                        case EAST:
+                            map.setCurDir(NORTH);
+                            break;
+                        case WEST:
+                            map.setCurDir(SOUTH);
+                            break;
+                        case NORTH:
+                            map.setCurDir(WEST);
+                            break;
+                        case SOUTH:
+                            map.setCurDir(EAST);
+                            break;
+                    }
+                    map.buildMap(view);
+                    return ((char) ch);
+                case 'R':
+                case 'r':
+                    switch (map.getCurDir()) {
+                        case EAST:
+                            map.setCurDir(SOUTH);
+                            break;
+                        case WEST:
+                            map.setCurDir(NORTH);
+                            break;
+                        case NORTH:
+                            map.setCurDir(EAST);
+                            break;
+                        case SOUTH:
+                            map.setCurDir(WEST);
+                            break;
+                    }
+                    map.buildMap(view);
+                    return ((char) ch);
+                case 'C':                       //HANDLE CHOPPING AND OPENING OF DOORS
+                case 'c':
+                    if (map.canChop(view)) {
+                        map.setHasRaft(true);
+                    }
+                    map.buildMap(view);
+                    return ((char) ch);
+                case 'U':
+                case 'u':
+                    map.buildMap(view);
+                    return ((char) ch);
             }
-        //} catch (IOException e) {
-        //    System.out.println("IO error:" + e);
-        //}
+        }
 
         return 0;
     }
@@ -180,10 +200,8 @@ public class Agent {
                     agent.map.buildMap(view);
                     agent.map.setPlayer();
                     agent.map.setToolCoords();
-                    agent.map.printMap();
-                    System.out.println(agent.map.isHasAxe());
                 }
-                agent.print_view(view); // COMMENT THIS OUT BEFORE SUBMISSION
+                //agent.print_view(view); // COMMENT THIS OUT BEFORE SUBMISSION
                 if (first) {
                     agent.map.initialiseMap(view);
                     first = false;

@@ -11,6 +11,12 @@ public class AStar {
     private HashMap<Map, Integer> gScore;
     private HashMap<Map, Integer> fScore;
 
+    /**
+     * Performs an AStar search from the given Map object's player coordinates to the goal coordinates input.
+     * @param goalCoords The goal coordinates of this AStar search
+     * @return The path of Map objects that the AStar search has found
+     */
+
     public List<Map> search(final int[] goalCoords) {
         Map currentMap = map;
         gScore = new HashMap<>();
@@ -20,7 +26,6 @@ public class AStar {
             @Override
             public int compare(Map o1, Map o2) {
                 return fScore.get(o1) - fScore.get(o2);
-                //return o1.getF(o1.getPlayerCoords(), goalCoords) - o2.getF(o2.getPlayerCoords(), goalCoords);
             }
         });
 
@@ -50,15 +55,10 @@ public class AStar {
                     gScore.put(neighbour, Integer.MAX_VALUE);
                 }
 
-                //neighbour.setMovesMade(currentMap.getMovesMade());
 
                 int weight = gScore.get(currentMap) + 1;
 
                 if (weight >= gScore.get(neighbour)) continue;
-                //int weight = currentMap.getMovesMade() + currentMap.getManhattanDistance(currentMap.getPlayerCoords(), goalCoords);
-                //int neighbourWeight = neighbour.getMovesMade() + neighbour.getManhattanDistance(neighbour.getPlayerCoords(), goalCoords);
-
-                //if (weight > neighbourWeight) continue;
 
                 cameFrom.put(neighbour, currentMap);
                 gScore.put(neighbour, weight);
@@ -72,7 +72,14 @@ public class AStar {
         return null;
     }
 
-    public List<Map> getPath(HashMap<Map, Map> cameFrom, Map current) {
+    /**
+     * Gets the path given the map cameFrom and the map and the current Map object
+     * @param cameFrom The Map that contains all Map objects and there predecessors in the AStar search
+     * @param current The current Map object that is the goal state
+     * @return The path of Map objects that the AStar search has found
+     */
+
+    private List<Map> getPath(HashMap<Map, Map> cameFrom, Map current) {
         List<Map> path = new ArrayList<>();
         path.add(current);
         while (cameFrom.get(current) != null) {
