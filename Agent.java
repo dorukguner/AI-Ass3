@@ -1,6 +1,6 @@
-import java.util.*;
 import java.io.*;
 import java.net.*;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Agent {
 
@@ -15,7 +15,7 @@ public class Agent {
     private int row, col, dirn;
 
 
-    public char get_action(char view[][]) {
+    public char get_action(char view[][]) throws InterruptedException {
 
 
         int ch = 0;
@@ -27,9 +27,10 @@ public class Agent {
                 // read character from keyboard
                 //ch = System.in.read();
                 //if (ch == 'a') {
+                Thread.sleep(100);
                     ch = map.getBestMove();
                 //}
-                System.out.printf("%c\n", ch);
+                //system.out.printf("%c\n", ch);
                 map.setMovesMade(map.getMovesMade() + 1);
                 switch (ch) { // if character is a valid action, return it
                     case 'F':
@@ -110,9 +111,9 @@ public class Agent {
                         return ((char) ch);
                 }
             }
-        /*} catch (IOException e) {
-            System.out.println("IO error:" + e);
-        }*/
+        //} catch (IOException e) {
+        //    System.out.println("IO error:" + e);
+        //}
 
         return 0;
     }
@@ -134,7 +135,7 @@ public class Agent {
         System.out.println("+-----+");
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         InputStream in = null;
         OutputStream out = null;
         Socket socket = null;
@@ -179,7 +180,8 @@ public class Agent {
                     agent.map.buildMap(view);
                     agent.map.setPlayer();
                     agent.map.setToolCoords();
-                    //agent.map.printMap();
+                    agent.map.printMap();
+                    System.out.println(agent.map.isHasAxe());
                 }
                 agent.print_view(view); // COMMENT THIS OUT BEFORE SUBMISSION
                 if (first) {

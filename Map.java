@@ -4,19 +4,16 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Map {
 
     private char[][] map = new char[40][40];      // CHANGE THIS TO 160 is used so that no matter where we start in the map, we can always fit every single possible map combination
-    private Pathing pathing = new Pathing(this);
+    private AStar AStar = new AStar(this);
     private boolean hasAxe = false;
     private boolean hasKey = false;
-    private boolean hasTreasure = false;
     private boolean hasRaft = false;
     private boolean onRaft = false;
     private boolean hasGold = false;
-    private boolean offMap = false;
     private int movesMade = 0;
 
     private HashMap<Character, List<int[]>> toolCoords = new HashMap<>();
 
-    private int nrows;     // number of rows in environment
     private int[] startCoords = {-1, -1}; // initial row and column
 
     private final static int NORTH = 0;
@@ -46,18 +43,24 @@ public class Map {
     public Map() {
         startCoords[0] = map.length / 2 + 2;
         startCoords[1] = map.length / 2 + 2;
-        toolCoords.put(GOLD, new ArrayList<>());
         toolCoords.put(AXE, new ArrayList<>());
         toolCoords.put(KEY, new ArrayList<>());
         toolCoords.put(DOOR, new ArrayList<>());
         toolCoords.put(TREE, new ArrayList<>());
         toolCoords.put(STONE, new ArrayList<>());
+        toolCoords.put(GOLD, new ArrayList<>());
     }
 
-    public Map(HashMap<Character, List<int[]>> toolCoords, char[][] map) {
+    public Map(HashMap<Character, List<int[]>> toolCoords, char[][] map, boolean hasAxe, boolean hasKey, boolean hasGold, boolean hasRaft, boolean onRaft, int numStones) {
         startCoords[0] = map.length / 2 + 2;
         startCoords[1] = map.length / 2 + 2;
         this.toolCoords = toolCoords;
+        this.hasAxe = hasAxe;
+        this.hasKey = hasKey;
+        this.hasGold = hasGold;
+        this.hasRaft = hasRaft;
+        this.onRaft = onRaft;
+        this.numStones = numStones;
         for (int i = 0; i < map.length; i++) {
             for (int j = 0; j < map[i].length; j++) {
                 this.map[i][j] = map[i][j];
@@ -65,34 +68,36 @@ public class Map {
         }
     }
 
+
+
     public void setPlayer() {
         int i = playerCoords[0];
         int j = playerCoords[1];
         char prevChar;
-        if (curDir == NORTH) {
+        if (curDir == NORTH && i < map.length - 1) {
             map[i][j] = '^';
-            /*prevChar = map[i + 1][j];
+            prevChar = map[i + 1][j];
             if (prevChar == '^') {
                 map[i + 1][j] = EMPTY;
-            }*/
-        } else if (curDir == SOUTH) {
+            }
+        } else if (curDir == SOUTH && i > 0) {
             map[i][j] = 'v';
-            /*prevChar = map[i - 1][j];
+            prevChar = map[i - 1][j];
             if (prevChar == 'v') {
                 map[i - 1][j] = EMPTY;
-            }*/
-        } else if (curDir == EAST) {
+            }
+        } else if (curDir == EAST && j > 0) {
             map[i][j] = '>';
-            /*prevChar = map[i][j - 1];
+            prevChar = map[i][j - 1];
             if (prevChar == '>') {
                 map[i][j - 1] = EMPTY;
-            }*/
-        } else if (curDir == WEST) {
+            }
+        } else if (curDir == WEST && j < map.length - 1) {
             map[i][j] = '<';
-            /*prevChar = map[i][j + 1];
+            prevChar = map[i][j + 1];
             if (prevChar == '<') {
                 map[i][j + 1] = EMPTY;
-            }*/
+            }
         }
     }
 
@@ -100,26 +105,26 @@ public class Map {
         int mapI = playerCoords[0] - 2;
         int mapJ = playerCoords[1] - 2;
         if (curDir == NORTH) {
-            for (int i = 0; i < view.length; i++) {
-                for (int j = 0; j < view.length; j++) {
+            for (int i = 0; i < view.length && i < map.length - mapI; i++) {
+                for (int j = 0; j < view[i].length && j < map[i].length - mapJ; j++) {
                     map[mapI + i][mapJ + j] = view[i][j];
                 }
             }
         } else if (curDir == SOUTH) {
-            for (int i = 0; i < view.length; i++) {
-                for (int j = view.length - 1; j >= 0; j--) {
+            for (int i = 0; i < view.length && i < map.length - mapI; i++) {
+                for (int j = view[i].length - 1; j >= 0; j--) {
                     map[mapI + view.length - 1 - i][mapJ + j] = view[i][4 - j];
                 }
             }
         } else if (curDir == EAST) {
-            for (int i = 0; i < view.length; i++) {
-                for (int j = view.length - 1; j >= 0; j--) {
+            for (int i = 0; i < view.length && i < map.length - mapI; i++) {
+                for (int j = view[i].length - 1; j >= 0; j--) {
                     map[mapI + j][mapJ + view.length - 1 - i] = view[i][j];
                 }
             }
         } else if (curDir == WEST) {
-            for (int i = 0; i < view.length; i++) {
-                for (int j = view.length - 1; j >= 0; j--) {
+            for (int i = 0; i < view.length && i < map.length - mapI; i++) {
+                for (int j = view[i].length - 1; j >= 0; j--) {
                     map[mapI + j][mapJ + i] = view[i][4 - j];
                 }
             }
@@ -177,6 +182,7 @@ public class Map {
             for (int j = 0; j < map[i].length; j++) {
                 int[] coords = new int[]{i, j};
                 if (toolCoords.containsKey(map[i][j]) && !seenToolCoords(toolCoords.get(map[i][j]), coords)) {
+                    System.out.println("Setting " + map[i][j] + " to " + i + ", " + j);
                     toolCoords.get(map[i][j]).add(coords);
                 }
             }
@@ -251,127 +257,190 @@ public class Map {
         } else if (curDir == WEST) {
             nextTile = map[i][j - 1];
         }
-        //System.out.println("Next tile is " + nextTile);
         return nextTile == EMPTY || nextTile == STONE || nextTile == PLACEDSTONE || nextTile == AXE || nextTile == KEY || nextTile == GOLD
                 || ((hasRaft || numStones > 0) && nextTile == WATER);
     }
 
-    public boolean tileIsWalkable(char tile) {
-        return tile == EMPTY || tile == STONE || tile == PLACEDSTONE || tile == AXE || tile == KEY || tile == GOLD
-                || ((onRaft || hasRaft || numStones > 0) && tile == WATER) || (hasAxe && tile == TREE) || (hasKey && tile == DOOR);
+    public boolean tileIsWalkable(char tile, char prevTile) {
+        return (prevTile != UNEXPLORED && tile == UNEXPLORED) || tile == EMPTY || tile == STONE || tile == PLACEDSTONE || tile == AXE || tile == KEY || tile == GOLD
+                || (tile == WATER && (onRaft || hasRaft || numStones > 0)) || (tile == TREE && hasAxe) || (tile == DOOR && hasKey);
     }
 
     public void setPlayerCoords(int i, int j) {
         this.playerCoords = new int[]{i, j};
     }
 
+    public boolean isHasAxe() {
+        return hasAxe;
+    }
+
     public Set<Map> getNeighbourMoves() {
         int i = playerCoords[0];
         int j = playerCoords[1];
         Set<Map> neighbours = new HashSet<>();
-        char nextTile = map[i + 1][j];
+        char prevTile = map[i][j];
+        char nextTile;
         Map curNeighbour;
-        if (tileIsWalkable(nextTile)) {
-            curNeighbour = new Map(toolCoords, map);
-            curNeighbour.map[i][j] = ' ';
-            curNeighbour.setPlayerCoords(i + 1, j);
-            curNeighbour.setPlayer();
-            neighbours.add(curNeighbour);
-            //curNeighbour.printMap();
+        if (i < map.length - 1) {
+            nextTile = map[i + 1][j];
+            if (tileIsWalkable(nextTile, prevTile)) {
+                curNeighbour = new Map(toolCoords, map, hasAxe, hasKey, hasGold, hasRaft, onRaft, numStones);
+                curNeighbour.map[i][j] = ' ';
+                curNeighbour.setPlayerCoords(i + 1, j);
+                curNeighbour.setPlayer();
+                neighbours.add(curNeighbour);
+                //curNeighbour.printMap();
+            }
         }
-        nextTile = map[i - 1][j];
-        if (tileIsWalkable(nextTile)) {
-            curNeighbour = new Map(toolCoords, map);
-            curNeighbour.map[i][j] = ' ';
-            curNeighbour.setPlayerCoords(i - 1, j);
-            curNeighbour.setPlayer();
-            neighbours.add(curNeighbour);
-            //curNeighbour.printMap();
+        if (i > 0) {
+            nextTile = map[i - 1][j];
+            if (tileIsWalkable(nextTile, prevTile)) {
+                curNeighbour = new Map(toolCoords, map, hasAxe, hasKey, hasGold, hasRaft, onRaft, numStones);
+                curNeighbour.map[i][j] = ' ';
+                curNeighbour.setPlayerCoords(i - 1, j);
+                curNeighbour.setPlayer();
+                neighbours.add(curNeighbour);
+                //curNeighbour.printMap();
+            }
         }
-        nextTile = map[i][j + 1];
-        if (tileIsWalkable(nextTile)) {
-            curNeighbour = new Map(toolCoords, map);
-            curNeighbour.map[i][j] = ' ';
-            curNeighbour.setPlayerCoords(i, j + 1);
-            curNeighbour.setPlayer();
-            neighbours.add(curNeighbour);
+        if (j < map.length - 1) {
+            nextTile = map[i][j + 1];
+            if (tileIsWalkable(nextTile, prevTile)) {
+                curNeighbour = new Map(toolCoords, map, hasAxe, hasKey, hasGold, hasRaft, onRaft, numStones);
+                curNeighbour.map[i][j] = ' ';
+                curNeighbour.setPlayerCoords(i, j + 1);
+                curNeighbour.setPlayer();
+                neighbours.add(curNeighbour);
+            }
         }
-        nextTile = map[i][j - 1];
-        if (tileIsWalkable(nextTile)) {
-            curNeighbour = new Map(toolCoords, map);
-            curNeighbour.map[i][j] = ' ';
-            curNeighbour.setPlayerCoords(i, j - 1);
-            curNeighbour.setPlayer();
-            neighbours.add(curNeighbour);
+        if (j > 0) {
+            nextTile = map[i][j - 1];
+            if (tileIsWalkable(nextTile, prevTile)) {
+                curNeighbour = new Map(toolCoords, map, hasAxe, hasKey, hasGold, hasRaft, onRaft, numStones);
+                curNeighbour.map[i][j] = ' ';
+                curNeighbour.setPlayerCoords(i, j - 1);
+                curNeighbour.setPlayer();
+                neighbours.add(curNeighbour);
+            }
         }
         return neighbours;
     }
 
-    private boolean hasCorrectTools(char tile) {
-        if (tile == TREE) return hasAxe;
-        if (tile == DOOR) return hasKey;
-        return true;
+    public boolean canReach(int[] start, int[] end) {
+        List<int[]> queue = new ArrayList<>();
+        Set<int[]> connected = new HashSet<>();
+        char prevTile = ' ';
+
+        queue.add(start);
+
+        while (!queue.isEmpty()) {
+            int[] cur = queue.remove(0);
+
+            char nextTile = map[cur[0]][cur[1]];
+
+            if (!setContainsArray(connected, cur)) {
+                if (!arraysAreEqual(start, cur) && !tileIsWalkable(nextTile, prevTile))
+                    continue;
+
+                connected.add(cur);
+
+                int i = cur[0];
+                int j = cur[1];
+                prevTile = map[i][j];
+                int nextI = i + 1;
+                int nextJ = j;
+                if (nextI < map.length && tileIsWalkable(map[nextI][nextJ], prevTile)) {
+                    queue.add(new int[]{nextI, nextJ});
+                }
+                nextI = i - 1;
+                if (nextI >= 0 && tileIsWalkable(map[nextI][nextJ], prevTile)) {
+                    queue.add(new int[]{nextI, nextJ});
+                }
+                nextI = i;
+                nextJ = j + 1;
+                if (nextJ < map.length && tileIsWalkable(map[nextI][nextJ], prevTile)) {
+                    queue.add(new int[]{nextI, nextJ});
+                }
+                nextJ = j - 1;
+                if (nextJ >= 0 && tileIsWalkable(map[nextI][nextJ], prevTile)) {
+                    queue.add(new int[]{nextI, nextJ});
+                }
+            }
+            prevTile = nextTile;
+        }
+        return setContainsArray(connected, end);
+    }
+
+    private boolean setContainsArray(Set<int[]> set, int[] array) {
+        for (int[] a : set) {
+            if (a.length == array.length && a[0] == array[0] && a[1] == array[1]) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public char getBestMove() {
-        Map bestMap = null;
+        List<Map> bestMoves = null;
         char bestTool = '.';
         int[] bestToolCoords = {-1, -1};
-        if (hasGold) {
-            if (pathing.search(startCoords, true) != null) {
-                bestMap = pathing.search(startCoords, false);
-            }
+        if (hasGold && canReach(playerCoords, startCoords)) {
+            bestMoves = AStar.search(startCoords);
+            System.out.println("Starting coords: " + startCoords[0] + ", " + startCoords[1]);
         }
-        if (bestMap == null) {
+        if (bestMoves == null) {
             for (char tool : toolCoords.keySet()) {
-                //System.out.println("Searching for tool: " + tool + ": " + toolCoords.get(tool).size());
+                System.out.println("Searching for tool: " + tool + ": " + toolCoords.get(tool).size());
                 if (!toolCoords.get(tool).isEmpty()) {
                     bestToolCoords = toolCoords.get(tool).get(0);
-                    if (hasCorrectTools(map[bestToolCoords[0]][bestToolCoords[1]]) && pathing.search(bestToolCoords, true) != null) {
-                        bestMap = pathing.search(bestToolCoords, false);
+                    if (canReach(playerCoords, bestToolCoords)) {
+                        System.out.println("Best " + tool + " coords: " + bestToolCoords[0] + ", " + bestToolCoords[1]);
+                        bestMoves = AStar.search(bestToolCoords);
                         bestTool = tool;
                         break;
                     }
                 }
             }
         }
-        if (bestMap == null) {
-            int[] bestUnexploredCoords = getBestUnexploredCoords();
-            if (bestUnexploredCoords != null) {
-                bestMap = pathing.search(bestUnexploredCoords, false);
-            }
+        if (bestMoves == null && !hasGold) {
+            bestMoves = getBestUnexploredCoords();
         }
-        if (bestMap != null) {
+        if (bestMoves != null && !bestMoves.isEmpty()) {
+            Map bestMap = bestMoves.get(0);
             int[] bestMoveCoords = bestMap.getPlayerCoords();
             System.out.println("Player coords: " + playerCoords[0] + ", " + playerCoords[1]);
             System.out.println("Move coords: " + bestMoveCoords[0] + ", " + bestMoveCoords[1]);
-            if (arraysAreEqual(bestMoveCoords, bestToolCoords)) {
-                System.out.println("Removing tool from coords");
-                toolCoords.get(bestTool).remove(0);
-            }
             int direction = getDirection(bestMap.getPlayerCoords());
             int directionDiff = curDir - direction;
             if (directionDiff == 0) {
                 char nextTile = map[bestMoveCoords[0]][bestMoveCoords[1]];
-                if (nextTile == TREE) {
+                if (nextTile == TREE && hasAxe) {
                     return 'c';
-                } else if (nextTile == DOOR) {
+                } else if (nextTile == DOOR && hasKey) {
                     return 'u';
                 }
+                if (arraysAreEqual(bestMoveCoords, bestToolCoords)) {
+                    System.out.println("Removing tool from coords");
+                    toolCoords.get(bestTool).remove(0);
+                }
+                System.out.println("Next tile : " + nextTile);
                 return 'f';
             } else if (directionDiff == -1 || directionDiff == -2 || directionDiff == 3) {
                 return 'r';
-            } else if (directionDiff == 1 || directionDiff == 2 ||  directionDiff == -3) {
+            } else if (directionDiff == 1 || directionDiff == 2 || directionDiff == -3) {
                 return 'l';
             }
         }
-        /*if (canMove()) {
+        if (canMove()) {
+            System.out.println("AYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY");
             return 'f';
         } else {
-            return 'r';
-        }*/
-        System.out.println("No moves");
-        return ' ';
+            int i = ThreadLocalRandom.current().nextInt(0,2);
+            if (i == 0) {
+                return 'r';
+            }
+            return 'l';
+        }
     }
 
     private boolean arraysAreEqual(int[] a1, int[] a2) {
@@ -383,14 +452,30 @@ public class Map {
         return true;
     }
 
-    public int[] getBestUnexploredCoords() {
+    public List<Map> getBestUnexploredCoords() {
         int curLength = 1;
+        int odd = 0;
         while (curLength < map.length - Math.max(playerCoords[0], playerCoords[1])) {
-            for (int i = playerCoords[0] - curLength; i <= playerCoords[0] + curLength; i++) {
+            int i = playerCoords[0];
+            while (i <= playerCoords[0] + curLength) {
                 for (int j = playerCoords[1] - curLength; j <= playerCoords[1] + curLength; j++) {
-                    if (map[i][j] == UNEXPLORED && pathing.search(new int[]{i, j}, true) != null) {
-                        return new int[]{i, j};
+                    if (map[i][j] == UNEXPLORED && canReach(playerCoords, new int[]{i, j})) {
+                        List<Map> bestMoves = AStar.search(new int[]{i, j});
+                        if (bestMoves != null) {
+                            System.out.println("Best unexplored coords: " + i + ", " + j);
+                            return bestMoves;
+                        }
                     }
+                }
+                if (odd == 0) {
+                    i = playerCoords[0] + curLength;
+                    odd = 1;
+                } else if (odd == 1) {
+                    i = playerCoords[0] - curLength;
+                    odd = 2;
+                } else {
+                    i = playerCoords[0] + curLength + 1;
+                    odd = 0;
                 }
             }
             curLength++;

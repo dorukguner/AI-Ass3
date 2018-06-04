@@ -5,7 +5,6 @@
  *  UNSW Session 1, 2018
  */
 
-import java.util.*;
 import java.io.*;
 import java.net.*;
 
@@ -322,7 +321,7 @@ public class Step {
                 "Usage: java Step [-p <port>] -i map [-m <maxmoves>] [-s]\n");
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
         Step step;
         boolean silent = false;
         String mapName = "";

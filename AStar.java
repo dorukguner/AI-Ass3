@@ -1,122 +1,108 @@
 import java.util.*;
 
-public class AStar{
+public class AStar {
 
-    private int totalTimeTaken = 0;
-    private int nodesExpanded = 0;
-    private GraphImpl graph;
+    private Map map;
 
-    private void setTotalTimeTaken(List<City> path) {
-        int i = 1;
-        while (i < path.size()) {
-            totalTimeTaken += path.get(i).getRefuelTime();
-            totalTimeTaken += graph.getWeight(path.get(i - 1), path.get(i));
-            i++;
-        }
+    public AStar(Map map) {
+        this.map = map;
     }
 
-    public void printPath(List<City> path) {
-        setTotalTimeTaken(path);
-        System.out.println(nodesExpanded + " nodes expanded");
-        System.out.println("cost = " + totalTimeTaken);
-        boolean printFlag = true;
-        int i = 0;
-        while (i < path.size()) {
-            if (printFlag) {
-                if (i < path.size() - 1) {
-                    System.out.print("Ship " + path.get(i).getCityName() + " to ");
-                }
-                printFlag = false;
-                i++;
-            } else {
-                System.out.println(path.get(i).getCityName());
-                printFlag = true;
-            }
-        }
-    }
+    private HashMap<Map, Integer> gScore;
+    private HashMap<Map, Integer> fScore;
 
-    public List<City> path(Map<City, List<City>> path, City start) {
-        final List<City> pathList = new ArrayList<>();
-        List<City> curList = path.get(start);
-        pathList.add(start);
-        while(curList != null && curList.size() > 0) {
-            pathList.add(curList.remove(0));
-            curList = path.get(pathList.get(pathList.size() - 1));
-        }
-        return pathList;
-    }
+    public List<Map> search(final int[] goalCoords) {
+        Map currentMap = map;
+        gScore = new HashMap<>();
+        fScore = new HashMap<>();
 
-    public List<City> search(State goalState) {
-        State currentState = new State();
-
-        currentState.setCurrentCity(graph.getNode("Sydney"));
-
-        PriorityQueue<State> openQueue = new PriorityQueue<>(new Comparator<State>() {
+        PriorityQueue<Map> openQueue = new PriorityQueue<>(new Comparator<Map>() {
             @Override
-            public int compare(State o1, State o2) {
-                return o1.getF(graph, goalState) - o2.getF(graph, goalState);
+            public int compare(Map o1, Map o2) {
+                return fScore.get(o1) - fScore.get(o2);
+                //return o1.getF(o1.getPlayerCoords(), goalCoords) - o2.getF(o2.getPlayerCoords(), goalCoords);
             }
         });
-        openQueue.add(currentState);
-        Set<State> closedSet = new HashSet<>();
-        Map<City, List<City>> path = new HashMap<>();
+
+        gScore.put(currentMap, 0);
+
+        fScore.put(currentMap, currentMap.getManhattanDistance(currentMap.getPlayerCoords(), goalCoords));
+
+        openQueue.add(currentMap);
+        Set<char[][]> closedSet = new HashSet<>();
+        HashMap<Map, Map> cameFrom = new HashMap<>();
 
         while (openQueue.peek() != null) {
-            currentState = openQueue.poll();
-            //System.out.println(currentState.getHeuristic(graph, goalState));
+            currentMap = openQueue.poll();
 
-            nodesExpanded++;
-            if (isGoalState(currentState.getShipments(), goalState)) {
-                return path(currentState.getShipments(), graph.getNode("Sydney"));
+            if (currentMap.getManhattanDistance(currentMap.getPlayerCoords(), goalCoords) <= 0) {
+                return getPath(cameFrom, currentMap);
             }
 
-            closedSet.add(currentState);
+            closedSet.add(currentMap.getMap());
+            for (Map neighbour : currentMap.getNeighbourMoves()) {
 
-            for (City neighbour : graph.getNeighbours(currentState.getCurrentCity()).keySet()) {
-                State nextState = new State();
-                nextState.setShipments(currentState.getShipments());
-                nextState.addShipment(currentState.getCurrentCity(), neighbour);
-                nextState.setCurrentCity(neighbour);
-
-                if (closedSet.contains(nextState)) continue;
-
-                if (!openQueue.contains(nextState)) {
-                    openQueue.add(nextState);
+                if (setContains(closedSet, neighbour.getMap())) {
+                    continue;
                 }
 
-
-                int weight = currentState.getG(graph) + currentState.getHeuristic(graph, nextState);
-
-                //System.out.println(currentState.getG(graph) + " " + weight + " " + nextState.getG(graph));
-                if (weight >= nextState.getG(graph)) continue;
-
-                if (path.containsKey(currentState.getCurrentCity())) {
-                    path.get(currentState.getCurrentCity()).add(neighbour);
-                } else {
-                    List<City> toList = new ArrayList<>();
-                    toList.add(neighbour);
-                    path.put(currentState.getCurrentCity(), toList);
+                if (!gScore.containsKey(neighbour)) {
+                    gScore.put(neighbour, Integer.MAX_VALUE);
                 }
 
+                //neighbour.setMovesMade(currentMap.getMovesMade());
 
+                int weight = gScore.get(currentMap) + 1;
+
+                if (weight >= gScore.get(neighbour)) continue;
+                //int weight = currentMap.getMovesMade() + currentMap.getManhattanDistance(currentMap.getPlayerCoords(), goalCoords);
+                //int neighbourWeight = neighbour.getMovesMade() + neighbour.getManhattanDistance(neighbour.getPlayerCoords(), goalCoords);
+
+                //if (weight > neighbourWeight) continue;
+
+                cameFrom.put(neighbour, currentMap);
+                gScore.put(neighbour, weight);
+                fScore.put(neighbour, weight + neighbour.getManhattanDistance(neighbour.getPlayerCoords(), goalCoords));
+
+                if (!openQueue.contains(neighbour)) {
+                    openQueue.add(neighbour);
+                }
             }
         }
         return null;
     }
 
-    private boolean isGoalState(Map<City, List<City>> path, State goalState) {
-        //currentState.getHeuristic(graph, goalState) <= 0;
-        for (City key : goalState.getShipments().keySet()) {
-            for (City city : goalState.getShipments().get(key)) {
-                if (!path.containsKey(key) || !path.get(key).contains(city)) {
-                    return false;
+    public List<Map> getPath(HashMap<Map, Map> cameFrom, Map current) {
+        List<Map> path = new ArrayList<>();
+        path.add(current);
+        while (cameFrom.get(current) != null) {
+            path.add(current);
+            current = cameFrom.get(current);
+        }
+        Collections.reverse(path);
+        return path;
+    }
+
+    private boolean setContains(Set<char[][]> closedSet, char[][] map) {
+        for (char[][] closedMap : closedSet) {
+            if (arraysAreEqual(closedMap, map)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean arraysAreEqual(char[][] a1, char[][] a2) {
+        if (a1.length == a2.length && a1[0].length == a2[0].length) {
+            for (int i = 0; i < a1.length; i++) {
+                for (int j = 0; j < a1[0].length; j++) {
+                    if (a1[i][j] != a2[i][j]) {
+                        return false;
+                    }
                 }
             }
         }
         return true;
     }
 
-    public void setGraph(GraphImpl graph) {
-        this.graph = graph;
-    }
 }
