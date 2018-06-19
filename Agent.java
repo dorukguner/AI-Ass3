@@ -48,9 +48,6 @@ public class Agent {
     private final static int SOUTH = 2;
     private final static int WEST = 3;
 
-    // current row, column and direction of agent
-    private int row, col, dirn;
-
 
     public char get_action(char view[][]) {
 
@@ -201,7 +198,7 @@ public class Agent {
                     agent.map.setPlayer();
                     agent.map.setToolCoords();
                 }
-                //agent.print_view(view); // COMMENT THIS OUT BEFORE SUBMISSION
+                agent.print_view(view);
                 if (first) {
                     agent.map.initialiseMap(view);
                     first = false;

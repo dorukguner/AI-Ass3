@@ -3,7 +3,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Map {
 
-    private char[][] map = new char[165][165];      // CHANGE THIS TO 160 is used so that no matter where we start in the map, we can always fit every single possible map combination
+    private char[][] map = new char[165][165];      // Assuming a maximum map size of 80 chars, so no matter where the player starts in the map we have enough room to move.
     private AStar AStar = new AStar(this);
     private boolean hasAxe = false;
     private boolean hasKey = false;
